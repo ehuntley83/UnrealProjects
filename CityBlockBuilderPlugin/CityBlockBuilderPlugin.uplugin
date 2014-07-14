@@ -1,0 +1,17 @@
+{
+  "FileVersion": 3,
+  
+  "FriendlyName": "City Block Builder",
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "EngineVersion": 1579795,
+  "Description": "A plugin used to quickly prototype urban cityscapes",
+  "Category": "EHuntley.Plugins",
+  "CreatedBy": "Ernie Huntley",
+  "CreatedByUrl": "http://budmaster.azurewebsites.net",
+  
+  "Modules": 
+  [
+    { "Name": "CityBlockBuilderPlugin", "Type": "Editor" }
+  ]
+}
