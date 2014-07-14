@@ -10,7 +10,8 @@ _alleyWidth(100),
 _heightPercent(50),
 _minSizePercent(50),
 _spacing(10),
-_boundsActor(NULL)
+_boundsActor(NULL),
+_alleySpace(AlleySpace::NoAlley)
 {
 }
 
@@ -30,7 +31,8 @@ void CityBlockBuilderWindow::Construct(const FArguments& args)
             + SHorizontalBox::Slot()
             .VAlign(VAlign_Center)
             [
-                SNew(STextBlock).Text(this, &CityBlockBuilderWindow::GetBoundsActorName)
+                SNew(STextBlock)
+                .Text(this, &CityBlockBuilderWindow::GetBoundsActorName)
                 .ColorAndOpacity(this, &CityBlockBuilderWindow::GetBoundsActorColorAndOpacity)
             ]
             + SHorizontalBox::Slot()
@@ -58,6 +60,42 @@ void CityBlockBuilderWindow::Construct(const FArguments& args)
                     ]
                 ]
             ]
+        ];
+
+    vertBox->AddSlot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            .VAlign(VAlign_Center)
+            [
+                SNew(STextBlock)
+                .Text(LOCTEXT("AlleySpaceName", "Alley Space"))
+            ]
+            + SHorizontalBox::Slot()
+                .VAlign(VAlign_Center)
+                [
+                    SNew(SComboButton)
+                    .ContentPadding(0)
+                    .OnGetMenuContent(this, &CityBlockBuilderWindow::GetAlleySpaceContent)
+                    .ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+                    .ButtonContent()
+                    [
+                        SNew(SHorizontalBox)
+                        + SHorizontalBox::Slot()
+                        .AutoWidth()
+                        .VAlign(VAlign_Center)
+                        [
+                            SNew(SImage).Image(FEditorStyle::GetBrush("GenericViewButton"))
+                        ]
+                        + SHorizontalBox::Slot()
+                        .VAlign(VAlign_Center)
+                        .Padding(2, 0, 0, 0)
+                        [
+                            SNew(STextBlock).Text(this, &CityBlockBuilderWindow::GetAlleySpaceText)
+                        ]
+                    ]
+                ]
         ];
 
     vertBox->AddSlot()
@@ -233,8 +271,8 @@ TSharedRef<SWidget> CityBlockBuilderWindow::GetBoundsActorContent()
     for (TActorIterator<ATriggerBox> i(world); i; ++i)
     {
         menu.AddMenuEntry(
-            FText::FromString(i->GetName()),
-            FText::FromString(i->GetName()),
+            FText::FromString(i->GetName()),    // Menu text
+            FText::FromString(i->GetName()),    // Tooltip text
             FSlateIcon(),
             FUIAction(
                 FExecuteAction::CreateSP(this, &CityBlockBuilderWindow::SelectBoundsActor, *i),
@@ -244,6 +282,76 @@ TSharedRef<SWidget> CityBlockBuilderWindow::GetBoundsActorContent()
             NAME_None,
             EUserInterfaceActionType::ToggleButton);
     }
+
+    return menu.MakeWidget();
+}
+
+FString CityBlockBuilderWindow::GetAlleySpaceText() const
+{
+    if (_alleySpace == AlleySpace::NoAlley)
+        return FString::Printf(TEXT("No alley"));
+
+    if (_alleySpace == AlleySpace::XAlley)
+        return FString::Printf(TEXT("X Alley"));
+
+    if (_alleySpace == AlleySpace::YAlley)
+        return FString::Printf(TEXT("Y Alley"));
+
+    return FString::Printf(TEXT("Error"));
+}
+
+void CityBlockBuilderWindow::SelectAlleySpace(AlleySpace::E space)
+{
+    _alleySpace = space;
+}
+
+bool CityBlockBuilderWindow::IsAlleySpaceSelected(AlleySpace::E space) const
+{
+    return _alleySpace == space;
+}
+
+TSharedRef<SWidget> CityBlockBuilderWindow::GetAlleySpaceContent()
+{
+    FMenuBuilder menu(true, NULL);
+
+    menu.AddMenuEntry(
+        FText::FromString(TEXT("No Alley")),    // Menu text
+        FText::FromString(TEXT("No Alley")),    // Tooltip text
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateSP(this, &CityBlockBuilderWindow::SelectAlleySpace, AlleySpace::NoAlley),
+            FCanExecuteAction(),
+            FIsActionChecked::CreateSP(this, &CityBlockBuilderWindow::IsAlleySpaceSelected, AlleySpace::NoAlley)
+        ),
+        NAME_None,
+        EUserInterfaceActionType::ToggleButton
+        );
+
+    menu.AddMenuEntry(
+        FText::FromString(TEXT("X Alley")),    // Menu text
+        FText::FromString(TEXT("X Alley")),    // Tooltip text
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateSP(this, &CityBlockBuilderWindow::SelectAlleySpace, AlleySpace::XAlley),
+            FCanExecuteAction(),
+            FIsActionChecked::CreateSP(this, &CityBlockBuilderWindow::IsAlleySpaceSelected, AlleySpace::XAlley)
+        ),
+        NAME_None,
+        EUserInterfaceActionType::ToggleButton
+        );
+
+    menu.AddMenuEntry(
+        FText::FromString(TEXT("Y Alley")),    // Menu text
+        FText::FromString(TEXT("Y Alley")),    // Tooltip text
+        FSlateIcon(),
+        FUIAction(
+            FExecuteAction::CreateSP(this, &CityBlockBuilderWindow::SelectAlleySpace, AlleySpace::YAlley),
+            FCanExecuteAction(),
+            FIsActionChecked::CreateSP(this, &CityBlockBuilderWindow::IsAlleySpaceSelected, AlleySpace::YAlley)
+        ),
+        NAME_None,
+        EUserInterfaceActionType::ToggleButton
+        );
 
     return menu.MakeWidget();
 }

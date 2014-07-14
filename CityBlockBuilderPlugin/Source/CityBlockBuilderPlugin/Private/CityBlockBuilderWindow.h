@@ -1,11 +1,23 @@
 #pragma once
 
+struct AlleySpace
+{
+    enum E
+    {
+        NoAlley,
+        XAlley,
+        YAlley
+    };
+};
+
 class CityBlockBuilderWindow : public SCompoundWidget
 {
 private:
     TSharedPtr<SComboButton> _boundsActorDropdown;
 
     ATriggerBox* _boundsActor;
+
+    AlleySpace::E _alleySpace;
 
     int _buildingsPerX;
     int _buildingsPerY;
@@ -21,6 +33,11 @@ private:
     bool IsActorSelected(ATriggerBox* actor);
     void SelectBoundsActor(ATriggerBox* actor);
     TSharedRef<SWidget> GetBoundsActorContent();
+
+    FString GetAlleySpaceText() const;
+    void SelectAlleySpace(AlleySpace::E space);
+    bool IsAlleySpaceSelected(AlleySpace::E space) const;
+    TSharedRef<SWidget> GetAlleySpaceContent();
 
     void BuildingsPerXChanged(int32 value);
     TOptional<int32> GetBuildingsPerX() const;
