@@ -17,6 +17,13 @@ _alleySpace(AlleySpace::NoAlley)
 
 void CityBlockBuilderWindow::Construct(const FArguments& args)
 {
+    // What we're doing here is using Slate to create a vertical box within our window
+    // then creating many horizontal boxes within that vertical box to contain our
+    // properties. Most of them consist of a label to the left and a value selector to
+    // the right. Each horizontal box is in a new Slot within the parent vertical box.
+    // The labels and selectors are in Slots in each horizontal box.
+    // Data binding between the values in the property selectors and our class is done
+    // through delegates which set the private property values.
     TSharedRef<SVerticalBox> vertBox = SNew(SVerticalBox);
 
     ChildSlot
@@ -227,6 +234,14 @@ void CityBlockBuilderWindow::Construct(const FArguments& args)
                 .OnValueChanged(this, &CityBlockBuilderWindow::SpacingChanged)
             ]
         ];
+
+    vertBox->AddSlot()
+        .AutoHeight()
+        [
+            SNew(SButton)
+            .Text(FString(TEXT("Build")))
+            .OnClicked(this, &CityBlockBuilderWindow::DoBuild)
+        ];
 }
 
 FString CityBlockBuilderWindow::GetBoundsActorName() const
@@ -430,4 +445,70 @@ UWorld* CityBlockBuilderWindow::GetWorld()
     }
 
     return world;
+}
+
+void CityBlockBuilderWindow::CreateBrush(FVector position, FVector size)
+{
+    // This method will take a position and size and create a new cube brush.
+    // It is called by the DoBuild method when creating all the randow builings.
+    // Placing BSP brushes is not optimal, as they take a while to generate and place
+    // but this could be extended to placing static meshes.
+    UWorld* world = GetWorld();
+
+    UCubeBuilder* cubeBuilder = Cast<UCubeBuilder>(GEditor->FindBrushBuilder (UCubeBuilder::StaticClass()));
+
+    cubeBuilder-> X = size.X;
+    cubeBuilder->Y = size.Y;
+    cubeBuilder->Z = size.Z;
+    cubeBuilder->Build(world);
+
+    world->GetBrush()->SetActorLocation(position);
+    GEditor->RedrawLevelEditingViewports();
+    GEditor->Exec(world, TEXT("BRUSH ADD"));
+}
+
+FReply CityBlockBuilderWindow::DoBuild()
+{
+    // This is the real meat and potatoes of the plugin that generates a number of cube brushes
+    // within the preferred sizes and alignments
+    if (_boundsActor == NULL)
+        return FReply::Handled();
+
+    FVector boundsSize = _boundsActor->GetComponentsBoundingBox().GetExtent();
+    FVector boundsPosition = _boundsActor->GetActorLocation();
+    FVector boundsMin = boundsPosition - boundsSize;
+    boundsSize *= 2;
+
+    float xBuildingBounds = (boundsSize.X - (_alleySpace == AlleySpace::XAlley ? _alleyWidth : 0)) / (float)_buildingsPerX;
+    float yBuildingBounds = (boundsSize.Y - (_alleySpace == AlleySpace::YAlley ? _alleyWidth : 0)) / (float)_buildingsPerY;
+
+    float alleyPivot = 0;
+    if (_alleySpace == AlleySpace::XAlley)
+        alleyPivot = _buildingsPerX / 2.f;
+    else if (_alleySpace == AlleySpace::YAlley)
+        alleyPivot = _buildingsPerY / 2.f;
+
+    FVector position, size;
+    for (int x = 0; x < _buildingsPerX; x++)
+    {
+        for (int y = 0; y < _buildingsPerY; y++)
+        {
+            size.X = FMath::FRandRange(xBuildingBounds * (_minSizePercent / 100.f), xBuildingBounds) - _spacing;
+            size.Y = FMath::FRandRange(yBuildingBounds * (_minSizePercent / 100.f), yBuildingBounds) - _spacing;
+            size.Z = FMath::FRandRange(boundsSize.Z * (_minSizePercent / 100.f), boundsSize.Z);
+
+            position.X = boundsMin.X + (xBuildingBounds * x) + _spacing + (size.X / 2.f);
+            position.Y = boundsMin.Y + (yBuildingBounds * y) + _spacing + (size.Y / 2.f);
+            position.Z = boundsMin.Z + (size.Z / 2.f);
+
+            if (_alleySpace == AlleySpace::XAlley && x >= alleyPivot)
+                position.X += _alleyWidth;
+            else if (_alleySpace == AlleySpace::YAlley && y >= alleyPivot)
+                position.Y += _alleyWidth;
+
+            CreateBrush(position, size);
+        }
+    }
+
+    return FReply::Handled();
 }

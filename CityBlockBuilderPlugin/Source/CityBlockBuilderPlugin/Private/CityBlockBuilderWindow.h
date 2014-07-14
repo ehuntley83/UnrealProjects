@@ -59,6 +59,9 @@ private:
 
     UWorld* GetWorld();
 
+    void CreateBrush(FVector position, FVector size);
+    FReply DoBuild();
+
 public:
     CityBlockBuilderWindow();
 
