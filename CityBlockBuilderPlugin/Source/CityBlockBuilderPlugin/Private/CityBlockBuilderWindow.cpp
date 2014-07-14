@@ -9,7 +9,8 @@ _buildingsPerY(1),
 _alleyWidth(100),
 _heightPercent(50),
 _minSizePercent(50),
-_spacing(10)
+_spacing(10),
+_boundsActor(NULL)
 {
 }
 
@@ -20,6 +21,43 @@ void CityBlockBuilderWindow::Construct(const FArguments& args)
     ChildSlot
         [
             vertBox
+        ];
+
+    vertBox->AddSlot()
+        .AutoHeight()
+        [
+            SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()
+            .VAlign(VAlign_Center)
+            [
+                SNew(STextBlock).Text(this, &CityBlockBuilderWindow::GetBoundsActorName)
+                .ColorAndOpacity(this, &CityBlockBuilderWindow::GetBoundsActorColorAndOpacity)
+            ]
+            + SHorizontalBox::Slot()
+            .VAlign(VAlign_Center)
+            [
+                SAssignNew(_boundsActorDropdown, SComboButton)
+                .ContentPadding(0)
+                .ForegroundColor(this, &CityBlockBuilderWindow::GetBoundsActorForeground)
+                .OnGetMenuContent(this, &CityBlockBuilderWindow::GetBoundsActorContent)
+                .ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+                .ButtonContent()
+                [
+                    SNew(SHorizontalBox)
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .VAlign(VAlign_Center)
+                    [
+                        SNew(SImage).Image(FEditorStyle::GetBrush("GenericViewButton"))
+                    ]
+                    + SHorizontalBox::Slot()
+                    .VAlign(VAlign_Center)
+                    .Padding(2, 0, 0, 0)
+                    [
+                        SNew(STextBlock).Text(this, &CityBlockBuilderWindow::GetBoundsActorName)
+                    ]
+                ]
+            ]
         ];
 
     vertBox->AddSlot()
@@ -153,6 +191,63 @@ void CityBlockBuilderWindow::Construct(const FArguments& args)
         ];
 }
 
+FString CityBlockBuilderWindow::GetBoundsActorName() const
+{
+    if (_boundsActor == NULL)
+        return FString::Printf(TEXT("No Actor Selected"));
+
+    return _boundsActor->GetName();
+}
+
+FSlateColor CityBlockBuilderWindow::GetBoundsActorColorAndOpacity() const
+{
+    if (_boundsActor == NULL)
+        return FLinearColor(1, 0, 0);
+
+    return FLinearColor(1, 1, 1);
+}
+
+FSlateColor CityBlockBuilderWindow::GetBoundsActorForeground() const
+{
+    if (_boundsActorDropdown->IsHovered())
+        return FEditorStyle::GetSlateColor("InvertedForeground");
+
+    return FEditorStyle::GetSlateColor("DefaultForeground");
+}
+
+bool CityBlockBuilderWindow::IsActorSelected(ATriggerBox* actor)
+{
+    return actor == _boundsActor;
+}
+
+void CityBlockBuilderWindow::SelectBoundsActor(ATriggerBox* actor)
+{
+    _boundsActor = actor;
+}
+
+TSharedRef<SWidget> CityBlockBuilderWindow::GetBoundsActorContent()
+{
+    UWorld* world = GetWorld();
+    FMenuBuilder menu(true, NULL);
+
+    for (TActorIterator<ATriggerBox> i(world); i; ++i)
+    {
+        menu.AddMenuEntry(
+            FText::FromString(i->GetName()),
+            FText::FromString(i->GetName()),
+            FSlateIcon(),
+            FUIAction(
+                FExecuteAction::CreateSP(this, &CityBlockBuilderWindow::SelectBoundsActor, *i),
+                FCanExecuteAction(),
+                FIsActionChecked::CreateSP(this, &CityBlockBuilderWindow::IsActorSelected, *i)
+            ),
+            NAME_None,
+            EUserInterfaceActionType::ToggleButton);
+    }
+
+    return menu.MakeWidget();
+}
+
 void CityBlockBuilderWindow::BuildingsPerXChanged(int32 value)
 {
     _buildingsPerX = value;
@@ -211,4 +306,20 @@ void CityBlockBuilderWindow::SpacingChanged(float value)
 TOptional<float> CityBlockBuilderWindow::GetSpacing() const
 {
     return _spacing;
+}
+
+UWorld* CityBlockBuilderWindow::GetWorld()
+{
+    UWorld* world = NULL;
+    const TArray<FWorldContext>& contexts = GEngine->GetWorldContexts();
+    for (int32 i = 0; i < contexts.Num(); i++)
+    {
+        if (contexts[i].WorldType == EWorldType::PIE)
+            return contexts[i].World();
+        
+        if (contexts[i].WorldType == EWorldType::Editor)
+            world = contexts[i].World();
+    }
+
+    return world;
 }

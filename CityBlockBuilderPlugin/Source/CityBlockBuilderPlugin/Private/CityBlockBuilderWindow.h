@@ -3,6 +3,10 @@
 class CityBlockBuilderWindow : public SCompoundWidget
 {
 private:
+    TSharedPtr<SComboButton> _boundsActorDropdown;
+
+    ATriggerBox* _boundsActor;
+
     int _buildingsPerX;
     int _buildingsPerY;
 
@@ -10,6 +14,13 @@ private:
     float _heightPercent;
     float _minSizePercent;
     float _spacing;
+
+    FString GetBoundsActorName() const;
+    FSlateColor GetBoundsActorColorAndOpacity() const;
+    FSlateColor GetBoundsActorForeground() const;
+    bool IsActorSelected(ATriggerBox* actor);
+    void SelectBoundsActor(ATriggerBox* actor);
+    TSharedRef<SWidget> GetBoundsActorContent();
 
     void BuildingsPerXChanged(int32 value);
     TOptional<int32> GetBuildingsPerX() const;
@@ -28,6 +39,8 @@ private:
 
     void SpacingChanged(float value);
     TOptional<float> GetSpacing() const;
+
+    UWorld* GetWorld();
 
 public:
     CityBlockBuilderWindow();
