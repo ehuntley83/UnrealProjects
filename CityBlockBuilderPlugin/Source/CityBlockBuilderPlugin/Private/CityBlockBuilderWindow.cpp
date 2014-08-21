@@ -434,14 +434,14 @@ TOptional<float> CityBlockBuilderWindow::GetSpacing() const
 UWorld* CityBlockBuilderWindow::GetWorld()
 {
     UWorld* world = NULL;
-    const TArray<FWorldContext>& contexts = GEngine->GetWorldContexts();
-    for (int32 i = 0; i < contexts.Num(); i++)
+    
+    for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
     {
-        if (contexts[i].WorldType == EWorldType::PIE)
-            return contexts[i].World();
+      if (WorldContext.WorldType == EWorldType::PIE)
+        return WorldContext.World();
         
-        if (contexts[i].WorldType == EWorldType::Editor)
-            world = contexts[i].World();
+      if (WorldContext.WorldType == EWorldType::Editor)
+        world = WorldContext.World();
     }
 
     return world;
@@ -462,7 +462,7 @@ void CityBlockBuilderWindow::CreateBrush(FVector position, FVector size)
     cubeBuilder->Z = size.Z;
     cubeBuilder->Build(world);
 
-    world->GetBrush()->SetActorLocation(position);
+    world->GetDefaultBrush()->SetActorLocation(position);
     GEditor->RedrawLevelEditingViewports();
     GEditor->Exec(world, TEXT("BRUSH ADD"));
 }
